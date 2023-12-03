@@ -24,7 +24,7 @@ build:
 	GIT_COMMIT=$$(git rev-list -1 HEAD) && CGO_ENABLED=0 go build  -ldflags "-s -w -X github.com/stefanprodan/podinfo/pkg/version.REVISION=$(GIT_COMMIT)" -a -o ./bin/podcli ./cmd/podcli/*
 
 tidy:
-	rm -f go.sum; go mod tidy -compat=1.19
+	rm -f go.sum; go mod tidy -compat=1.21
 
 vet:
 	go vet ./...
@@ -82,11 +82,11 @@ version-set:
 	/usr/bin/sed -i '' "s/podinfo:$$current/podinfo:$$next/g" deploy/webapp/backend/deployment.yaml && \
 	/usr/bin/sed -i '' "s/podinfo:$$current/podinfo:$$next/g" deploy/bases/frontend/deployment.yaml && \
 	/usr/bin/sed -i '' "s/podinfo:$$current/podinfo:$$next/g" deploy/bases/backend/deployment.yaml && \
-	/usr/bin/sed -i '' "s/$$current/$$next/g" cue/main.cue && \
-	echo "Version $$next set in code, deployment, chart and kustomize"
+	/usr/bin/sed -i '' "s/$$current/$$next/g" timoni/podinfo/values.cue && \
+	echo "Version $$next set in code, deployment, module, chart and kustomize"
 
 release:
-	git tag $(VERSION)
+	git tag -s -m $(VERSION) $(VERSION)
 	git push origin $(VERSION)
 
 swagger:
@@ -95,11 +95,6 @@ swagger:
 	go get github.com/swaggo/swag/cmd/swag@latest
 	cd pkg/api && $$(go env GOPATH)/bin/swag init -g server.go
 
-.PHONY: cue-mod
-cue-mod:
-	@cd cue && cue get go k8s.io/api/...
-
-.PHONY: cue-gen
-cue-gen:
-	@cd cue && cue fmt ./... && cue vet --all-errors --concrete ./...
-	@cd cue && cue gen
+.PHONY: timoni-build
+timoni-build:
+	@timoni build podinfo ./timoni/podinfo -f ./timoni/podinfo/test_values.cue
